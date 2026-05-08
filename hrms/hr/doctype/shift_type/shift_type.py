@@ -43,11 +43,13 @@ class ShiftType(Document):
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
+		from hrms.hr.doctype.shift_type_break import ShiftTypeBreak
 
 		allow_check_out_after_shift_end_time: DF.Int
 		allow_overtime: DF.Check
 		auto_update_last_sync: DF.Check
 		begin_check_in_before_shift_start_time: DF.Int
+		break_times: DF.Table[ShiftTypeBreak]
 		color: DF.Literal[
 			"Blue", "Cyan", "Fuchsia", "Green", "Lime", "Orange", "Pink", "Red", "Violet", "Yellow"
 		]
@@ -57,6 +59,7 @@ class ShiftType(Document):
 		]
 		early_exit_grace_period: DF.Int
 		enable_auto_attendance: DF.Check
+		enable_break_times: DF.Check
 		enable_early_exit_marking: DF.Check
 		enable_late_entry_marking: DF.Check
 		end_time: DF.Time
@@ -271,8 +274,13 @@ class ShiftType(Document):
 		2. Logs are in chronological order
 		"""
 		late_entry = early_exit = False
+
+		break_times = None
+		if self.enable_break_times:
+			break_times = self.break_times
+
 		total_working_hours, in_time, out_time = calculate_working_hours(
-			logs, self.determine_check_in_and_check_out, self.working_hours_calculation_based_on
+			logs, self.determine_check_in_and_check_out, self.working_hours_calculation_based_on, break_times
 		)
 		if (
 			cint(self.enable_late_entry_marking)
